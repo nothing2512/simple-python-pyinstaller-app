@@ -21,10 +21,14 @@ node {
   }
   
   stage('deliver') {
-    docker.image('cdrx/pyinstaller-linux:python2').inside {
+    withEnv(["VOLUME='$(pwd)/sources:/src'", "IMAGE='cdrx/pyinstaller-linux:python2'"]) {
       try {
-        sh 'pyinstaller --onefile sources/add2vals.py'
-        archiveArtifacts 'dist/add2vals'
+        dir(path: env.BUILD_ID) { 
+          unstash(name: 'compiled-results') 
+          sh "docker run --rm -v ${VOLUME} ${IMAGE} 'pyinstaller -F add2vals.py'" 
+        }
+        archiveArtifacts "${env.BUILD_ID}/sources/dist/add2vals"
+        sh "docker run --rm -v ${VOLUME} ${IMAGE} 'rm -rf build dist'"
       } catch (e) {
       } finally {
       }
